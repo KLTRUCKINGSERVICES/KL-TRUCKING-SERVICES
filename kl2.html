@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KL Trucking Services</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            color: green;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+        }
+        button {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>KL Trucking Services Client Management</h1>
+    <form id="clientForm">
+        <input type="text" id="clientName" placeholder="Client Name" required>
+        <input type="text" id="receiptNumber" placeholder="Delivery Receipt Number" required>
+        <button type="submit">Add Client</button>
+    </form>
+    <div id="feedback" class="alert hidden"></div>
+    <table id="clientTable">
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Delivery Receipt Number</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Client entries will be added here -->
+        </tbody>
+    </table>
+
+    <div id="statusUpdate" class="hidden">
+        <h3>Update Delivery Status</h3>
+        <label for="statusClientName">Client Name:</label>
+        <input type="text" id="statusClientName" readonly>
+        <label for="statusSelect">Delivery Status:</label>
+        <select id="statusSelect">
+            <option value="Pending">Pending</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Delivered">Delivered</option>
+        </select>
+        <button id="updateStatusBtn">Update Status</button>
+    </div>
+
+    <div id="proofOfDelivery" class="hidden">
+        <h3>Upload Proof of Delivery</h3>
+        <input type="file" id="proofFile" accept="image/*">
+        <button id="uploadProofBtn">Upload Proof</button>
+    </div>
+
+    <script>
+        let currentClientRow;
+
+        document.getElementById('clientForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const clientName = document.getElementById('clientName').value.trim();
+            const receiptNumber = document.getElementById('receiptNumber').value.trim();
+
+            if (!clientName || !receiptNumber) {
+                showFeedback("Please fill in all fields.", "error");
+                return;
+            }
+
+            addClientToTable(clientName, receiptNumber);
+            this.reset(); // Clear the form fields
+            showFeedback("Client added successfully!");
+        });
+
+        function addClientToTable(clientName, receiptNumber) {
+            const tableBody = document.getElementById('clientTable').querySelector('tbody');
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td>${clientName}</td>
+                <td>${receiptNumber}</td>
+                <td>
+                    <button onclick="removeClient(this)">Remove</button>
+                    <button onclick="prepareStatusUpdate(this)">Update Status</button>
+                </td>
+            `;
+
+            tableBody.appendChild(row);
+        }
+
+        function removeClient(button) {
+            const row = button.closest('tr');
+            const clientName = row.cells[0].innerText;
+
+            // Remove the proof of delivery row for the client
+            const proofRow = row.nextElementSibling; // Get the next row (proof row)
+            if (proofRow && proofRow.classList.contains('proof-row')) {
+                proofRow.remove(); // Remove the associated proof row
+            }
+
+            row.remove();
+            showFeedback(`Client ${clientName} removed successfully!`);
+        }
+
+        function prepareStatusUpdate(button) {
+            currentClientRow = button.closest('tr');
+            const clientName = currentClientRow.cells[0].innerText;
+            document.getElementById('statusClientName').value = clientName;
+            document.getElementById('statusUpdate').classList.remove('hidden');
+        }
+
+        document.getElementById('updateStatusBtn').addEventListener('click', function() {
+            const newStatus = document.getElementById('statusSelect').value;
+            currentClientRow.cells[1].innerText = newStatus; // Update the delivery status cell
+            
+            // Hide the proof of delivery section if not "Delivered"
+            if (newStatus === "Delivered") {
+                document.getElementById('proofOfDelivery').classList.remove('hidden');
+            } else {
+                document.getElementById('proofOfDelivery').classList.add('hidden');
+            }
+
+            document.getElementById('statusUpdate').classList.add('hidden'); // Hide the status update form
+            showFeedback("Delivery status updated successfully!");
+        });
+
+        document.getElementById('uploadProofBtn').addEventListener('click', function() {
+            const fileInput = document.getElementById('proofFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showFeedback("Please select a file to upload.", "error");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100px'; // Adjust size as needed
+                img.style.height = 'auto';
+                
+                // Create a new row for the proof of delivery
+                const proofRow = document.createElement('tr');
+                proofRow.classList.add('proof-row'); // Add a class for easy identification
+                proofRow.innerHTML = `<td colspan="3">Proof of Delivery: </td>`;
+                proofRow.appendChild(img);
+
+                // Insert the proof row right after the current client row
+                currentClientRow.parentNode.insertBefore(proofRow, currentClientRow.nextSibling);
+
+                // Reset the file input
+                fileInput.value = '';
+                document.getElementById('proofOfDelivery').classList.add('hidden');
+                showFeedback("Proof of delivery uploaded successfully!");
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function showFeedback(message, type = "") {
+            const feedback = document.getElementById('feedback');
+            feedback.innerText = message;
+            feedback.className = `alert ${type} ${type ? '' : 'hidden'}`;
+        }
+    </script>
+</body>
+</html>
